@@ -56,9 +56,6 @@ namespace LoginSystem.Test
         {
             _repo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync(new User());
 
-            var user = CreateValidUser();
-            var userDetails = CreateValidUserDetail();
-
             Func<Task> act = () =>
                 _userManager.CreateUserAsync(CreateValidUser(), CreateValidUserDetail());
 
@@ -73,7 +70,67 @@ namespace LoginSystem.Test
         {
             _repo.Setup(r => r.GetFullUserAsync(It.IsAny<int>())).ReturnsAsync((User?)null);
             var result = await _userManager.GetUserAsync(7);
-            result.Should().BeNull(); 
+            result.Should().BeNull();
         }
+
+        [Fact]
+        public async Task CreateUserAsync_Throws_WhenUserIsNull()
+        {
+
+            Func<Task> act = () =>
+                _userManager.CreateUserAsync(null!, CreateValidUserDetail());
+
+            await act.Should().ThrowAsync<ArgumentNullException>().WithParameterName("Error 1");
+
+            _repo.Verify(x => x.AddUserAsync(It.IsAny<User>(), It.IsAny<UserDetail>()), Times.Never);
+
+        }
+
+
+        [Fact]
+        public async Task CreateUserAsync_Throws_WhenUserDetailsIsNull()
+        {
+            Func<Task> act = () =>
+                _userManager.CreateUserAsync(CreateValidUser(), null!);
+
+            await act.Should().ThrowAsync<ArgumentNullException>().WithParameterName("Error 2");
+
+            _repo.Verify(x => x.AddUserAsync(It.IsAny<User>(), It.IsAny<UserDetail>()), Times.Never);
+
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_Throws_WhenUserIsUnderEighteen()
+        {
+            _repo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((User?)null);
+
+            var user = CreateValidUser();
+            var userDetails = CreateValidUserDetail();
+            userDetails.Age = 17;
+            
+            Func<Task> act = () =>
+                _userManager.CreateUserAsync(user, userDetails);
+            
+            await act.Should().ThrowAsync<Exception>().WithMessage("User must be at least 18 years old");
+            
+            _repo.Verify(x => x.AddUserAsync(It.IsAny<User>(), It.IsAny<UserDetail>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_Throws_WhenEmailIsEmpty()
+        {
+            _repo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((User?)null);
+
+            var user = CreateValidUser();
+            var userDetails = CreateValidUserDetail();
+            user.Email = string.Empty;
+            Func<Task> act = () =>
+                _userManager.CreateUserAsync(user, userDetails);
+
+            await act.Should().ThrowAsync<Exception>().WithMessage("User must have an Email");
+            
+            _repo.Verify(x => x.AddUserAsync(It.IsAny<User>(), It.IsAny<UserDetail>()), Times.Never);
+        }
+
     }
 }

@@ -10,14 +10,23 @@ namespace LoginSystem.Services.Users
         private readonly IUserDataManager _userDataManager = userDataManager;
         public async Task CreateUserAsync(User user, UserDetail detail)
         {
+            if (user == null) throw new ArgumentNullException("Error 1");
+            if (detail == null) throw new ArgumentNullException("Error 2");
+            if (detail.Age < 18) throw new Exception("User must be at least 18 years old");
+
+            if (user.Email == string.Empty) throw new Exception("User must have an Email");
+
             var existing = await _userDataManager.GetByEmailAsync(user.Email);
             if (existing != null)
             {
                 throw new Exception("Email already exists");
             }
+
             user.IsActive = true;
             user.DateCreated = DateTime.Now;
             await _userDataManager.AddUserAsync(user, detail);
+
+            
         }
 
         public async Task<User?> GetUserAsync(int userId)
